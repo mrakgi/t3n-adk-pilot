@@ -1,0 +1,15 @@
+=== Finding #2: /api/trust-manifest probes against the testnet node ===
+node: https://cn-api.sg.testnet.t3n.terminal3.io
+date: 2026-08-08 17:06 UTC
+
+--- GET /api/trust-manifest ---
+HTTP/2 405 
+x-request-id: 24475a99-d03f-4f7a-857f-34142a781f03
+
+--- POST /api/trust-manifest ---
+HTTP/2 400 
+x-request-id: 2aaddc3a-41dc-4e1f-ac75-79de942c6fa0
+
+--- GET /status (control: node is healthy) ---
+HTTP/2 200 
+x-request-id: 8a848cb2-0e01-4876-8f4f-64fd5cb518d9

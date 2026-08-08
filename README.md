@@ -5,9 +5,15 @@ Submission for the Superteam Earn bounty
 by **LOL ventures**.
 
 Everything below was run end to end against T3N **testnet** on 2026-08-08.
-Ten findings came out of it — written up with reproductions in
+Thirteen findings came out of it — written up with reproductions in
 [BUGS.md](BUGS.md). The bonus criterion (a use case beyond the first contract)
 is in [USE-CASE.md](USE-CASE.md).
+
+Three of them block the published samples outright, and two more are worth
+flagging early to anyone starting out: a contract registration costs **189.09
+tokens** and that price is undocumented, while `token.getUsage()` — the only
+usage method in the SDK — is broken on the wire, so you cannot see the balance
+you are spending until an operation fails.
 
 ---
 
@@ -29,17 +35,23 @@ Deployed contract:
 ```
 z:6810d27cd637c1873551e25606ce7fc48a5edbe5:flight
 contract_id 537 (v0.1.0) → 538 (v0.1.1) → 540 (v0.1.2) → 541 (v0.1.3)
+                        → 542 (v0.2.0) → 543, 544 → probe run (v2.220.1647)
 ```
+
+Note: `getScriptVersion()` currently reports `2.220.1647` for this tail, and that
+version cannot be invoked — see findings #12 and #13. Pass
+`CONTRACT_VERSION=0.2.0` to `invoke.ts` to pin a known-good version.
 
 The final invocation runs the contract inside the enclave, reads the API key
 from `z:<tid>:secrets`, and makes an authorised outbound call to
 `api.duffel.com`. Duffel answers **HTTP 401** because the seeded value is the
 placeholder `duffel_test_PLACEHOLDER` — no Duffel account was created for this
-exercise (`scripts/invoke.ts` prints which value it seeded). Everything owned by
-T3N works; the only failure is a third-party rejecting a deliberately invalid
-token. That is the intended end state, and it demonstrates the whole chain:
-enclave execution → KV secret read → authorised egress → upstream response
-surfaced to the caller.
+exercise (`scripts/invoke.ts` prints which value it seeded). Every step on the
+T3N side of that call completed; the only failure is a third-party rejecting a
+deliberately invalid token. That is the intended end state, and it exercises the
+whole chain: enclave execution → KV secret read → authorised egress → upstream
+response surfaced to the caller. (This says nothing about the platform as a
+whole — see the thirteen findings.)
 
 ---
 
@@ -143,7 +155,7 @@ three different stages:
    because bumping the contract version mints a new id and silently orphans the
    old ACL (finding #8).
 
-Full detail, severity and reproductions for all ten findings: [BUGS.md](BUGS.md).
+Full detail, severity and reproductions for all thirteen findings: [BUGS.md](BUGS.md).
 
 ---
 
@@ -153,6 +165,10 @@ Full detail, severity and reproductions for all ten findings: [BUGS.md](BUGS.md)
 scripts/quickstart.ts        authenticate, obtain tenant DID
 scripts/register.ts          TenantClient + contract registration
 scripts/invoke.ts            KV map, ACL, secret seeding, egress grant, contract call
+scripts/probes/              throwaway scripts used to isolate findings #11-#13
+  credit-check.ts              getUsage failure + full InsufficientCredit text
+  semver-probe.ts              which versions register, and can they be invoked
+  pin-probe.ts                 does an explicit older version still route correctly
 logs/01-build.txt            cargo build + wasm-tools component wit
 logs/02-quickstart.txt       authenticated session
 logs/03-register.txt         contract registration
@@ -160,6 +176,9 @@ logs/04-invoke.txt           full invocation chain
 logs/05-cargo-test.txt       documented test command failing + host-target fix
 logs/06-acl-break.txt        reproduction of the ACL breakage (finding #8)
 logs/07-stderr-volume.txt    2.13 MB stderr measurement (findings #1 and #7)
+logs/08-credits.txt          broken getUsage, registration price, InsufficientCredit (#11)
+logs/09-version-pinning.txt  version accepted at register but rejected at invoke (#12, #13)
+logs/10-trust-manifest.txt   GET/POST probes showing the 405 on /api/trust-manifest (#2)
 ```
 
 No credentials are committed: `T3N_API_KEY` and `DUFFEL_API_KEY` are read from

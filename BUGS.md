@@ -1,12 +1,14 @@
 # Findings — Terminal 3 ADK, 2026-08-08
 
-Ten findings from completing the Quickstart and the five-step Walkthrough on
+Thirteen findings from completing the Quickstart and the five-step Walkthrough on
 **testnet**, with `@terminal3/t3n-sdk@4.25.0`, Node v24.18.0, Rust 1.97.1,
 against the reference contract `z-tenant-flight`.
 
-Every claim below is backed by a log in [logs/](logs/) or by a line in the
-shipped type definitions / reference source. Where I could not verify something
-first-hand, it says so explicitly.
+Each finding cites either a log in [logs/](logs/), a line in the shipped type
+definitions / reference source, or a documentation page by URL. Claims that rest
+on the web documentation are quoted with links so they can be checked directly —
+I did not snapshot those pages, so they reflect their state on 2026-08-08.
+Where I could not verify something first-hand, it says so explicitly.
 
 Three findings (#1, #2, #3) stop the published samples from running at all.
 
@@ -22,6 +24,9 @@ Three findings (#1, #2, #3) stop the published samples from running at all.
 | 8 | Platform | High | Re-registering a contract breaks its own map ACL | [06](logs/06-acl-break.txt) |
 | 9 | Docs | Low | Quickstart states the SDK defaults to production; it defaults to testnet | type defs |
 | 10 | Reference repo | Low | Three different versions declared across README, WIT and Cargo | source |
+| 11 | SDK | **High** | `token.getUsage()` is broken — no way to read credit usage at all | verified below |
+| 12 | Platform | **High** | A version accepted by `register` is rejected at invoke, and becomes the active one | verified below |
+| 13 | Docs | Medium | Docs warn that version pinning is ignored; pinning actually works | verified below |
 
 ---
 
@@ -60,9 +65,9 @@ Internally `assertNodeTrusted(url, key, opts)` passes `opts` straight to
 with a named error naming the missing field.
 
 **Suggested fix:** add `trustAnchor` to the Quickstart, Set-up-dev-env and
-Invoke samples and guard the constructor. The field's own documentation argues
-that accidental omission must be impossible — yet accidental omission is
-precisely what the tutorial currently teaches.
+Invoke samples and guard the constructor. Worth noting the field's own
+documentation argues that omitting it must never happen by accident — which
+makes its absence from the samples look like an oversight rather than intent.
 
 Full reproduction: [logs/07-stderr-volume.txt](logs/07-stderr-volume.txt) (the
 sample run there is the documented one, with `trustAnchor` removed).
@@ -104,10 +109,11 @@ SDK uses the wrong verb.
 **Why this matters beyond convenience.** The SDK's own docs state that without a
 real anchor "a network attacker with their own TDX VM can hand the SDK a
 forged-but-valid attestation for a key it controls and read every session".
-With the documented path returning 405, the only way to finish the tutorial is
-`{ unsafe_trust_server: true }` — disabling attestation verification. Every
-developer following the guide today ends up with that line in their code, and
-it is exactly the line most likely to be copied into production.
+In my run, with the documented path returning 405, the only way I found to
+finish the tutorial was `{ unsafe_trust_server: true }` — which disables
+attestation verification. If others hit the same 405, they will land on the
+same line, and it is the kind of line that tends to survive a copy-paste into
+later code.
 
 **Suggested fix:** repair the route on testnet; until then, publish the interim
 anchor values rather than leaving the opt-out as the de facto path.
@@ -355,6 +361,127 @@ Harmless in isolation, but the walkthrough asks you to reason about versions
 disagreeing numbers in the example project make an already-subtle area harder.
 Note these are distinct from the *registered* contract version (`0.1.x` here),
 which is chosen by the tenant.
+
+---
+
+## #11 — `token.getUsage()` is broken; credit balance is unreadable
+
+**Severity:** High — you cannot see a metered resource you are spending.
+
+`TenantTokenNamespace` exposes exactly one method, `getUsage`. It fails on the
+wire, both with an argument and without:
+
+```
+RPC Error: invalid token.get-usage params: invalid type: string
+"<redacted-opaque-value>", expected struct GetUsageParams
+[request_id cab7d7a5-065e-49fe-b749-fb6bc2be83b7]
+```
+
+The SDK sends a bare string where the node expects a `GetUsageParams` struct.
+There is no `balance()` method anywhere on the client, so **there is no
+programmatic way to read your credit balance or consumption at all**.
+
+**Why it matters.** Credits are consumed silently until an operation fails.
+The registration I attempted required **189.09 tokens** (`required=189091682`
+base units, `BASE_UNITS_PER_TOKEN = 1_000_000`) — I did not find that price on
+any documentation page I checked, and cannot tell from the outside whether it is
+fixed or varies with component size. Roughly fifteen registrations over a few
+hours of ordinary debugging were enough to drain the starting grant. The first
+signal was a failed operation:
+
+```
+InsufficientCredit (account=<tid>, required=189091682, available=187116983)
+```
+
+That error is actually the *good* part: it reports both numbers, and is the only
+way I found to learn the price of an operation or the remaining balance.
+
+Continuing until the balance hit zero surfaced a second price, two orders of
+magnitude apart from the first:
+
+```
+contracts.register  -> InsufficientCredit (required=189091682,   available=187116983)   ~189 tokens
+execute (invoke)    -> InsufficientCredit (required=10000000000, available=0)         10 000 tokens
+```
+
+An invocation appears to require ~53× what a registration does. Whether that is
+a real per-call price or a reserve/escrow held for the call, I cannot tell from
+the outside — which is precisely the problem. With `getUsage` broken there is no
+way to see this coming, budget for it, or explain it to a teammate.
+
+**Suggested fix:** fix the `getUsage` param encoding, add a balance accessor, and
+publish the cost of `register`/`execute`. A developer should not have to run out
+of a resource to discover what it costs — twice, at two different prices.
+
+---
+
+## #12 — A version accepted by `register` is rejected at invoke — and becomes the active one
+
+**Severity:** High — breaks the default call path, though an explicit version
+pin still works as a workaround (see #13).
+
+`contracts.register()` accepted version `2.220.1647`. Invoking the same contract
+then failed:
+
+```
+CALL RETURNED: Invalid action request: Invalid semver format: 2.220.1647
+```
+
+Two validators disagree: registration accepts a version string that execution
+refuses to parse. Worse, the newest registered version becomes what
+`getScriptVersion()` reports, so the *default* call path is the broken one:
+
+```
+getScriptVersion() reports: 2.220.1647
+version 2.220.1647   -> rejected: invalid semver
+version 0.2.0        -> reached contract + egress (full chain works)
+version 0.1.3        -> reached contract + egress (full chain works)
+version 0.1.0        -> reached contract + egress (full chain works)
+```
+
+So the contract is not lost — pinning an earlier version explicitly still works
+(#13), and that is the workaround. What breaks is the documented flow,
+`getScriptVersion()` → `execute`, which is what the walkthrough teaches and what
+any caller resolving "latest" will hit. Registering a newer valid version would
+also fix it, but that costs credits (#11), so a developer who hits this near the
+end of their grant is left with the workaround rather than the clean fix.
+
+I could not determine which component of `2.220.1647` offends the invoke-side
+parser; `0.3.1647` and `1.220.1647` both registered *and* invoked cleanly on a
+separate tail, so it is not simply large numeric components.
+
+**Suggested fix:** validate versions identically on both paths — reject at
+registration what invoke cannot parse.
+
+---
+
+## #13 — Docs warn that version pinning is ignored; pinning actually works
+
+**Severity:** Medium — the warning describes behaviour that does not occur, and
+omits the one that does.
+
+The [register page](https://docs.terminal3.io/developers/adk/get-started/walkthrough/register-contract)
+warns:
+
+> once a higher version is registered for a tail, invocations continue to route
+> to the *latest* registered version — even ones that explicitly pass an older
+> `version` in `contracts.execute()`.
+
+Tested directly (output above, finding #12): with the reported latest version
+failing, calls that explicitly passed `0.2.0`, `0.1.3` and `0.1.0` each
+completed successfully. They therefore did **not** get routed to the currently
+reported latest version, which is what the warning predicts. (Since all these
+versions are the same WASM, I cannot prove from the response alone which exact
+build executed — distinguishing that would need visibly different builds. What
+is certain is that the calls succeeded while "latest" was broken.)
+
+This matters twice over. First, the warning discourages the one workaround that
+actually rescues finding #12. Second, the real hazard — that
+`getScriptVersion()` can hand you a version the invoke path rejects — is not
+documented at all.
+
+**Suggested fix:** correct or remove the warning, and document the real failure
+mode instead.
 
 ---
 

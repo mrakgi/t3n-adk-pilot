@@ -1,0 +1,51 @@
+=== Finding #11: token.getUsage() is broken, and credit cost is undocumented ===
+(run: credit-check.ts — reads usage, then attempts one registration)
+
+tenant DID: did:t3n:6810d27cd637c1873551e25606ce7fc48a5edbe5
+
+--- the only usage/balance method the SDK exposes ---
+token namespace methods: constructor, getUsage
+
+token.getUsage() error: RPC Error: invalid token.get-usage params:
+  invalid type: string "<redacted-opaque-value>",
+  expected struct GetUsageParams [cab7d7a5-065e-49fe-b749-fb6bc2be83b7]
+
+  (fails identically when called with {} and with no argument;
+   there is no balance() method on TenantClient or any namespace)
+
+--- full text of the registration failure ---
+InsufficientCredit (account=6810d27cd637c1873551e25606ce7fc48a5edbe5,
+                    required=189091682, available=187116983)
+code: RPC_ERROR
+
+--- unit conversion (constants read from the SDK) ---
+BASE_UNITS_PER_TOKEN: 1000000
+TOKEN_DECIMALS: 6
+cost of one contract registration: 189091682 base units = 189.091682 tokens
+available at that moment:          187116983 base units = 187.116983 tokens
+short by:                            1974699 base units =   1.974699 tokens
+
+Note: the price of a registration is not documented anywhere we could find.
+The InsufficientCredit error is the only place both the price and the balance
+are ever surfaced.
+
+=== follow-up: balance reached zero, and a second, much higher price appeared ===
+(run: scripts/invoke.ts, once with the default latest version, once pinned)
+
+--- default path (no CONTRACT_VERSION) ---
+script: z:<tid>:flight | latest reported: 2.220.1647 | using latest
+CALL RETURNED: Invalid action request: Invalid semver format: 2.220.1647
+  [request_id d3972b5b-f80c-43fd-b342-278f55d6116d]
+  -> reproduces finding #12 through the package's own documented command
+
+--- pinned path (CONTRACT_VERSION=0.2.0) ---
+script: z:<tid>:flight | latest reported: 2.220.1647 | pinned to: 0.2.0
+CALL RETURNED: InsufficientCredit (account=<tid>, required=10000000000, available=0)
+
+--- the two prices observed, for comparison ---
+contracts.register  required=189091682    =    189.09 tokens
+execute (invoke)    required=10000000000  = 10 000.00 tokens   (~53x a registration)
+balance now         available=0
+
+Neither price is documented on any page we checked, and with token.getUsage()
+broken there is no way to observe consumption before an operation fails.

@@ -89,8 +89,17 @@ try {
 // --- step 3: self-grant egress to api.duffel.com ---
 // Allowed hosts come from the calling user's grant, not from the contract.
 const TENANT_SCRIPT = `z:${tenantDid.slice("did:t3n:".length)}:${TAIL}`;
-const scriptVersion = await getScriptVersion(getNodeUrl(), TENANT_SCRIPT);
-console.log("script:", TENANT_SCRIPT, "version:", scriptVersion);
+const latestVersion = await getScriptVersion(getNodeUrl(), TENANT_SCRIPT);
+
+// BUGS.md #12/#13: "latest" can resolve to a version the invoke path refuses to
+//   parse. Set CONTRACT_VERSION to pin an older, known-good one instead — that
+//   pin does work, despite the docs warning that it is ignored.
+const scriptVersion = process.env.CONTRACT_VERSION ?? latestVersion;
+console.log(
+  "script:", TENANT_SCRIPT,
+  "| latest reported:", latestVersion,
+  process.env.CONTRACT_VERSION ? `| pinned to: ${scriptVersion}` : "| using latest",
+);
 
 try {
   const userContractVersion = await getScriptVersion(getNodeUrl(), "tee:user/contracts");

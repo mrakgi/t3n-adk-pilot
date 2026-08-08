@@ -76,10 +76,12 @@ I want to be explicit here, because the obvious pitch overstates the guarantees:
   require code review, and `logging` is itself a capability worth withholding.
 - **Registration does not pin what executes.** `source_hash` is optional in the
   register payload and documented as never constraining execution, so
-  "the reviewed hash is what ran" does not hold as stated. Combined with the
-  documented warning that invocations route to the *latest* registered version
-  even when an older one is pinned, version handling is the area I would want
-  hardened before trusting capital to it. See finding #8.
+  "the reviewed hash is what ran" does not hold as stated. Version handling
+  generally is the area I would want hardened before trusting capital to it:
+  a version accepted at registration can be rejected at invoke and still become
+  the one "latest" resolves to (finding #12), and map ACLs are silently orphaned
+  by a re-register (finding #8). Explicit version pinning does work (#13), so
+  the building block for a "reviewed version only" grant exists.
 - **Venue integration is not a drop-in swap.** Duffel takes a bearer token;
   most exchange APIs need request signing with nonce/timestamp and a
   canonicalisation scheme. Whether that fits cleanly inside the enclave
@@ -96,6 +98,7 @@ I want to be explicit here, because the obvious pitch overstates the guarantees:
 
 The parts that are hardest to build yourself — attested execution, a secret
 store the code can read but the operator's other processes cannot, and
-per-caller egress authorisation — are exactly the parts already working. Two of
-the four limits above are documentation and version-handling issues rather than
-architectural ones.
+per-caller egress authorisation — are exactly the parts already working. Of the
+six limits above, the version-handling and funding ones look like fixable
+platform issues rather than architectural constraints; the confinement and
+latency ones are real design boundaries to build around.

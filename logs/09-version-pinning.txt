@@ -1,0 +1,42 @@
+=== Findings #12 and #13: version accepted at register, rejected at invoke ===
+(run: pin-probe.ts — resolves the live version, then calls several explicitly)
+
+Background: an earlier run registered version "2.220.1647" for tail `flight`.
+contracts.register() ACCEPTED it. It then became the version reported by
+getScriptVersion(), i.e. the default call path.
+
+getScriptVersion() reports: 2.220.1647
+
+version 2.220.1647   -> *** rejected: invalid semver ***
+version 0.2.0        -> reached contract + egress (full chain works)
+version 0.1.3        -> reached contract + egress (full chain works)
+version 0.1.0        -> reached contract + egress (full chain works)
+
+("reached contract + egress" = the call entered the enclave, read the API key
+ from z:<tid>:secrets and performed the authorised outbound request to
+ api.duffel.com, which answered 401 for the placeholder token — the expected
+ end state for this exercise.)
+
+--- what this shows ---
+
+#12  Registration and invocation validate versions differently. A version that
+     registers successfully can be un-callable, and because the newest version
+     is what getScriptVersion() returns, the documented flow breaks by default.
+
+#13  The register page warns that invocations "continue to route to the latest
+     registered version — even ones that explicitly pass an older version".
+     That is not what happens: every explicitly pinned older version routed
+     correctly. Pinning works, and it is in fact the workaround for #12.
+
+--- earlier probe: register+invoke on a clean tail (semver-probe.ts) ---
+0.0.1        register: OK   invoke: reached contract
+0.0.99       register: OK   invoke: reached contract
+0.1.100      register: OK   invoke: reached contract
+0.1.999      register: OK   invoke: reached contract
+0.2.1000     register: OK   invoke: reached contract
+0.3.1647     register: OK   invoke: reached contract
+1.220.1647   register: OK   invoke: reached contract
+
+So large numeric components are not themselves the trigger — 1.220.1647 both
+registered and invoked cleanly on a separate tail. We could not isolate what
+specifically makes 2.220.1647 unparseable on the invoke path.
