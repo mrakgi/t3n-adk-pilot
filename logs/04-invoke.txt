@@ -1,0 +1,8 @@
+seeding placeholder "duffel_test_PLACEHOLDER" — Duffel is expected to reject it with 401
+tenant: did:t3n:6810d27cd637c1873551e25606ce7fc48a5edbe5
+maps.create: RPC Error: map already exists [272c46f4-0d86-42b4-ae7d-1652d78c9eb9]
+secrets ACL re-issued for contract_id 541
+key sealed into z:<tid>:secrets
+script: z:6810d27cd637c1873551e25606ce7fc48a5edbe5:flight version: 0.1.3
+egress grant issued (self)
+CALL RETURNED: RPC Error: contract error: Duffel offer-request failed: HTTP 401 — {"errors":[{"documentation_url":"https://duffel.com/docs/api/overview/response-handling","title":"Access token not found","type":"authentication_error","message":"The access token you have used is not a valid API access token","code":"access_token_not_found"}],"meta":{"request_id":"GMnhfyFb4fWy7WoDSvyC","status":401}} [b8acf61f-7c8e-4e56-b143-6ad000ac7c3b]

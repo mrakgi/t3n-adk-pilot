@@ -1,0 +1,23 @@
+=== cargo test --lib (as documented in README.md) ===
+   Compiling wit-bindgen-core v0.49.0
+   Compiling wit-component v0.243.0
+   Compiling z-tenant-flight v0.4.1 (<home>/t3n-pilot/z-tenant-flight)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.61s
+     Running unittests src/lib.rs (target/wasm32-wasip2/debug/deps/z_tenant_flight-6f98e0f52bcb8dc1.wasm)
+error: test failed, to rerun pass `--lib`
+
+Caused by:
+  could not execute process `<home>/t3n-pilot/z-tenant-flight/target/wasm32-wasip2/debug/deps/z_tenant_flight-6f98e0f52bcb8dc1.wasm` (never executed)
+
+Caused by:
+  Permission denied (os error 13)
+
+=== same command with explicit host target ===
+test booking::tests::book_offer_non_wasm_returns_err ... ok
+test search::tests::search_offers_non_wasm_returns_err ... ok
+test booking::tests::book_offer_rejects_inline_pii_fields ... ok
+test tests::contract_version_is_semver ... ok
+test tests::contract_version_is_v0_4_0 ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

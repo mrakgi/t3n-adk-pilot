@@ -1,0 +1,38 @@
+=== cargo build --target wasm32-wasip2 --release (clean build) ===
+     Removed 1140 files, 657.1MiB total
+   Compiling wit-parser v0.243.0
+   Compiling wasm-metadata v0.243.0
+   Compiling wit-bindgen-core v0.49.0
+   Compiling wit-component v0.243.0
+   Compiling z-tenant-flight v0.4.1 (<home>/t3n-pilot/z-tenant-flight)
+    Finished `release` profile [optimized] target(s) in 14.86s
+
+=== artifact ===
+-rw-rw-r-- 2 user  user  194K Aug  8 19:15 target/wasm32-wasip2/release/z_tenant_flight.wasm
+
+=== wasm-tools component wit ===
+package root:component;
+
+world root {
+  import host:tenant/tenant-context@1.0.0;
+  import host:interfaces/logging@2.1.0;
+  import host:interfaces/kv-store@2.1.0;
+  import host:interfaces/http@2.1.0;
+  import host:interfaces/http-with-placeholders@2.1.0;
+  import wasi:io/poll@0.2.9;
+  import wasi:clocks/monotonic-clock@0.2.9;
+  import wasi:io/error@0.2.9;
+  import wasi:io/streams@0.2.9;
+  import wasi:cli/stdout@0.2.9;
+  import wasi:cli/stderr@0.2.9;
+  import wasi:cli/stdin@0.2.9;
+  import wasi:cli/environment@0.2.9;
+  import wasi:cli/exit@0.2.9;
+  import wasi:cli/terminal-input@0.2.9;
+  import wasi:cli/terminal-output@0.2.9;
+  import wasi:cli/terminal-stdin@0.2.9;
+  import wasi:cli/terminal-stdout@0.2.9;
+  import wasi:cli/terminal-stderr@0.2.9;
+
+  export z:tenant-flight/contracts@0.4.0;
+}

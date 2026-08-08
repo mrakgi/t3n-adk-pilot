@@ -1,0 +1,6 @@
+Connected as: did:t3n:6810d27cd637c1873551e25606ce7fc48a5edbe5
+TenantClient env: undefined
+TenantClient canonical: z:6810d27cd637c1873551e25606ce7fc48a5edbe5:flight
+wasm: <home>/t3n-pilot/z-tenant-flight/target/wasm32-wasip2/release/z_tenant_flight.wasm (197904 bytes)
+registered z:6810d27cd637c1873551e25606ce7fc48a5edbe5:flight as contract id 541
+RESULT_JSON: {"name":"z:6810d27cd637c1873551e25606ce7fc48a5edbe5:flight","contract_id":541}

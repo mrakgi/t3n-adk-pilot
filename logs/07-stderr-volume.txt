@@ -1,0 +1,19 @@
+=== Finding #7: stderr volume for a single SDK error ===
+(running the Quickstart sample exactly as documented, i.e. without trustAnchor)
+
+total stderr bytes: 2233151
+bytes in lines longer than 2000 chars (the minified bundle): 2231910
+
+=== the actually useful part, i.e. the tail ===
+TypeError: Cannot read properties of undefined (reading 'unsafe_trust_server')
+    at isUnsafeTrustServer (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1011440)
+    at assertNodeTrusted (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1110564)
+    at <anonymous> (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1111498)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async T3nClient.handleGuestToHost (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1154349)
+    at async T3nClient.handleWasmRequest (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1152715)
+    at async T3nClient.runFlow (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1151670)
+    at async T3nClient.handshake (<home>/t3n-pilot/my-t3n-app/node_modules/@terminal3/t3n-sdk/dist/index.esm.js:2:1128669)
+    at async <anonymous> (<home>/t3n-pilot/my-t3n-app/as-documented.ts:33:1)
+
+Node.js v24.18.0

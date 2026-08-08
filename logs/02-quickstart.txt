@@ -1,0 +1,3 @@
+ETH address: 0x5785dc9128c5fefce9c731fd6bfd33a29aee265d
+handshake: ok
+Connected as: did:t3n:6810d27cd637c1873551e25606ce7fc48a5edbe5

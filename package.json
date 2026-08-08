@@ -1,0 +1,16 @@
+{
+  "name": "t3n-adk-pilot",
+  "version": "1.0.0",
+  "description": "Terminal 3 ADK quickstart + walkthrough completion report, with findings",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "quickstart": "tsx scripts/quickstart.ts",
+    "register": "tsx scripts/register.ts",
+    "invoke": "tsx scripts/invoke.ts"
+  },
+  "dependencies": {
+    "@terminal3/t3n-sdk": "4.25.0",
+    "tsx": "4.23.1"
+  }
+}

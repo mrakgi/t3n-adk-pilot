@@ -1,0 +1,4 @@
+[1] ACL of z:<tid>:secrets currently names contract_id 538
+[2] re-registered flight v0.1.2 -> NEW contract_id 540
+[3] invoking z:6810d27cd637c1873551e25606ce7fc48a5edbe5:flight v0.1.2 WITHOUT touching the map ACL
+[4] RESULT: RPC Error: contract error: kv read: kv_store.get on 'z:6810d27cd637c1873551e25606ce7fc48a5edbe5:secrets' read denied: access denied: TenantContract(did:t3n:6810d27cd637c1873551e25606ce7fc48a5edbe5/540) cannot read map "z:6810d27cd637c1873551e25606ce7fc48a5edbe5:secrets" [1fd60ee7-13d1-480d-9a7f-963bfd331d64]
