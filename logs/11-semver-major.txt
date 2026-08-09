@@ -1,0 +1,8 @@
+probe    : version=2.0.0 tail=probe2
+script   : z:6810d27cd637c1873551e25606ce7fc48a5edbe5:probe2
+utc      : 2026-08-09T06:40:17.750Z
+---
+register : OK  -> 562
+latest   : getScriptVersion() -> 2.0.0
+invoke   : semver passed, failed later
+RPC Error: contract error: kv read: kv_store.get on 'z:6810d27cd637c1873551e25606ce7fc48a5edbe5:secrets' read denied: access denied: TenantContract(did:t3n:6810d27cd637c1873551e25606ce7fc48a5edbe5/562) cannot read map "z:6810d27cd637c1873551e25606ce7fc48a5edbe5:secrets" [5c469204-cd9e-4f52-a2f0-8dd157b70602]

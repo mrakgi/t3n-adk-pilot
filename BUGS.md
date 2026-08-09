@@ -25,7 +25,7 @@ Three findings (#1, #2, #3) stop the published samples from running at all.
 | 9 | Docs | Low | Quickstart states the SDK defaults to production; it defaults to testnet | type defs |
 | 10 | Reference repo | Low | Three different versions declared across README, WIT and Cargo | source |
 | 11 | SDK | **High** | `token.getUsage()` is broken — no way to read credit usage at all | [08](logs/08-credits.txt) |
-| 12 | Platform | **High** | A version accepted by `register` is rejected at invoke, and becomes the active one | [09](logs/09-version-pinning.txt) |
+| 12 | Platform | **High** | A version accepted by `register` is rejected at invoke, and is reported as latest | [09](logs/09-version-pinning.txt) |
 | 13 | Docs | Medium | Docs warn that version pinning is ignored; pinning actually works | [09](logs/09-version-pinning.txt) |
 
 ---
@@ -421,7 +421,7 @@ responses quoted above: [logs/08-credits.txt](logs/08-credits.txt).
 
 ---
 
-## #12 — A version accepted by `register` is rejected at invoke — and becomes the active one
+## #12 — A version accepted by `register` is rejected at invoke — and is reported as latest
 
 **Severity:** High — breaks the default call path, though an explicit version
 pin still works as a workaround (see #13).
@@ -433,8 +433,8 @@ then failed:
 CALL RETURNED: Invalid action request: Invalid semver format: 2.220.1647
 ```
 
-Two validators disagree: registration accepts a version string that execution
-refuses to parse. Worse, the newest registered version becomes what
+The registration and invocation paths accept different sets of version strings:
+registration takes one that execution then refuses to parse. Worse, the newest registered version becomes what
 `getScriptVersion()` reports, so the *default* call path is the broken one:
 
 ```
@@ -452,12 +452,51 @@ any caller resolving "latest" will hit. Registering a newer valid version would
 also fix it, but that costs credits (#11), so a developer who hits this near the
 end of their grant is left with the workaround rather than the clean fix.
 
-I could not determine which component of `2.220.1647` offends the invoke-side
-parser; `0.3.1647` and `1.220.1647` both registered *and* invoked cleanly on a
-separate tail, so it is not simply large numeric components.
+**Narrowed down.** Five further probes, one version per run, driven by
+[scripts/probes/semver-one.ts](scripts/probes/semver-one.ts) — logs
+[11](logs/11-semver-major.txt), [12](logs/12-semver-repro.txt),
+[13](logs/13-semver-narrow.txt), [14](logs/14-semver-pair.txt),
+[15](logs/15-semver-major3.txt). Together with the two earlier probes:
 
-**Suggested fix:** validate versions identically on both paths — reject at
-registration what invoke cannot parse.
+| Version | Tail | Registers | Invoke |
+|---|---|---|---|
+| `0.3.1647` | `probe` | yes | reaches contract |
+| `1.220.1647` | `probe` | yes | reaches contract |
+| `2.0.0` | `probe2` | yes | reaches contract |
+| `2.220.1647` | `probe2` | yes | **Invalid semver format** |
+| `2.220.0` | `probe3` | yes | reaches contract |
+| `2.0.1647` | `probe4` | yes | **Invalid semver format** |
+| `3.0.1647` | `probe5` | yes | **Invalid semver format** |
+
+**What this shows.** With `major = 2`, `patch = 0` reached contract code at both
+`minor = 0` and `minor = 220`, while `patch = 1647` was rejected at both minor
+values. `3.0.1647` was rejected; `1.220.1647` and `0.3.1647` were not.
+Registration accepted all seven. So the two paths accept different sets of
+version strings, and no single component explains the rejected set.
+
+**What it does not show.** These seven points do not establish that every major
+of 2 or above is affected, that the minor component is universally irrelevant,
+or that there is a monotonic patch threshold to find: no patch value between 1
+and 1646 was tested, so `1647` is a tested value rather than a demonstrated
+boundary.
+
+The rejection appeared under four different tail names, which makes state
+accumulated on the original `flight` tail an unlikely explanation. Note that
+probes 11 and 12 shared the tail `probe2` — `2.0.0` was registered there first —
+so not every run started from an empty tail.
+
+The rejections carry a JSON position: `column 94` for the eight-character
+versions, `96` for the ten-character one, shifting by exactly the difference in
+version length. Together with the `Invalid action request` prefix, and with the
+accepted versions reaching contract code, that is consistent with rejection
+while deserialising or validating the action request, before contract execution.
+It does not identify which server-side layer performs the check — a custom
+semver parser invoked during deserialisation would look the same from outside.
+
+**Suggested fix:** align the accepted version domain across both paths — either
+reject at registration what invoke cannot parse, or widen invoke to accept what
+registration already stores. Which way round is a product call; the defect is
+that the two disagree.
 
 Full reproduction — registration of `2.220.1647`, the invoke-side rejection and
 the version matrix above: [logs/09-version-pinning.txt](logs/09-version-pinning.txt).

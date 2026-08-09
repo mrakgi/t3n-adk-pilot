@@ -1,0 +1,8 @@
+probe    : version=3.0.1647 tail=probe5
+script   : z:6810d27cd637c1873551e25606ce7fc48a5edbe5:probe5
+utc      : 2026-08-09T06:44:18.485Z
+---
+register : OK  -> 566
+latest   : getScriptVersion() -> 3.0.1647
+invoke   : *** SEMVER REJECTED ***
+RPC Error: Invalid action request: Invalid semver format: 3.0.1647 at line 1 column 94 [67385491-1bdb-4901-a940-f1e7263e8718]

@@ -179,7 +179,23 @@ logs/07-stderr-volume.txt    2.13 MB stderr measurement (findings #1 and #7)
 logs/08-credits.txt          broken getUsage, registration price, InsufficientCredit (#11)
 logs/09-version-pinning.txt  version accepted at register but rejected at invoke (#12, #13)
 logs/10-trust-manifest.txt   GET/POST probes showing the 405 on /api/trust-manifest (#2)
+logs/11-semver-major.txt     2.0.0     — registers, invoke passes semver (#12)
+logs/12-semver-repro.txt     2.220.1647 — the rejection, reproduced on a clean tail (#12)
+logs/13-semver-narrow.txt    2.220.0   — registers, invoke passes semver (#12)
+logs/14-semver-pair.txt      2.0.1647  — rejected; minor component ruled out (#12)
+logs/15-semver-major3.txt    3.0.1647  — rejected; boundary is major >= 2 (#12)
 ```
+
+Logs 11-15 are the follow-up probes that narrow finding #12 — one version per
+run, driven by `scripts/probes/semver-one.ts`. Tails: 11 and 12 both ran on
+`probe2` (so 12 followed an earlier registration there), 13-15 on `probe3`,
+`probe4` and `probe5` respectively.
+
+The logs were captured before the script's verdict strings were tightened (it
+now distinguishes "failed inside the contract" from "failed before reaching
+contract code", and warns when the resolved latest version is not the one just
+registered). The observations themselves are unchanged — the raw error text in
+each log is what the node returned.
 
 No credentials are committed: `T3N_API_KEY` and `DUFFEL_API_KEY` are read from
 the environment. The tenant DID and the derived ETH address appear in the logs —
