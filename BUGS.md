@@ -15,7 +15,7 @@ Three findings (#1, #2, #3) stop the published samples from running at all.
 | # | Area | Severity | One-line | Evidence |
 |---|---|---|---|---|
 | 1 | Docs / Quickstart | **Blocker** | `trustAnchor` is required by the type but missing from every sample | [07](logs/07-stderr-volume.txt) |
-| 2 | Node API | **Blocker** | `GET /api/trust-manifest` → 405; no safe way to obtain a real anchor | verified below |
+| 2 | Node API | **Blocker** | `GET /api/trust-manifest` → 405; no safe way to obtain a real anchor | [10](logs/10-trust-manifest.txt) |
 | 3 | Docs / Set-up | **Blocker** | `tenant.me()` does not exist in the SDK | type defs |
 | 4 | Docs contradiction | High | `tenant_did()` guidance contradicts the WIT *and* the reference contract | [04](logs/04-invoke.txt) |
 | 5 | Reference repo | Medium | `cargo test --lib` as documented cannot execute | [05](logs/05-cargo-test.txt) |
@@ -24,9 +24,9 @@ Three findings (#1, #2, #3) stop the published samples from running at all.
 | 8 | Platform | High | Re-registering a contract breaks its own map ACL | [06](logs/06-acl-break.txt) |
 | 9 | Docs | Low | Quickstart states the SDK defaults to production; it defaults to testnet | type defs |
 | 10 | Reference repo | Low | Three different versions declared across README, WIT and Cargo | source |
-| 11 | SDK | **High** | `token.getUsage()` is broken — no way to read credit usage at all | verified below |
-| 12 | Platform | **High** | A version accepted by `register` is rejected at invoke, and becomes the active one | verified below |
-| 13 | Docs | Medium | Docs warn that version pinning is ignored; pinning actually works | verified below |
+| 11 | SDK | **High** | `token.getUsage()` is broken — no way to read credit usage at all | [08](logs/08-credits.txt) |
+| 12 | Platform | **High** | A version accepted by `register` is rejected at invoke, and becomes the active one | [09](logs/09-version-pinning.txt) |
+| 13 | Docs | Medium | Docs warn that version pinning is ignored; pinning actually works | [09](logs/09-version-pinning.txt) |
 
 ---
 
@@ -117,6 +117,9 @@ later code.
 
 **Suggested fix:** repair the route on testnet; until then, publish the interim
 anchor values rather than leaving the opt-out as the de facto path.
+
+Full probe output, including the `x-request-id` values above:
+[logs/10-trust-manifest.txt](logs/10-trust-manifest.txt).
 
 ---
 
@@ -413,6 +416,9 @@ way to see this coming, budget for it, or explain it to a teammate.
 publish the cost of `register`/`execute`. A developer should not have to run out
 of a resource to discover what it costs — twice, at two different prices.
 
+Full reproduction — the `getUsage` RPC error and both `InsufficientCredit`
+responses quoted above: [logs/08-credits.txt](logs/08-credits.txt).
+
 ---
 
 ## #12 — A version accepted by `register` is rejected at invoke — and becomes the active one
@@ -453,6 +459,9 @@ separate tail, so it is not simply large numeric components.
 **Suggested fix:** validate versions identically on both paths — reject at
 registration what invoke cannot parse.
 
+Full reproduction — registration of `2.220.1647`, the invoke-side rejection and
+the version matrix above: [logs/09-version-pinning.txt](logs/09-version-pinning.txt).
+
 ---
 
 ## #13 — Docs warn that version pinning is ignored; pinning actually works
@@ -482,6 +491,9 @@ documented at all.
 
 **Suggested fix:** correct or remove the warning, and document the real failure
 mode instead.
+
+Full reproduction — the explicit-version calls that succeeded while "latest" was
+broken: [logs/09-version-pinning.txt](logs/09-version-pinning.txt).
 
 ---
 
