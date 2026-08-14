@@ -4,16 +4,17 @@ Submission for the Superteam Earn bounty
 [*Create Agent ID, claim free tokens, & deploy first RUST contract on the network*](https://superteam.fun/earn/listing/ai-id/)
 by **LOL ventures**.
 
-Everything below was run end to end against T3N **testnet** on 2026-08-08.
-Thirteen findings came out of it — written up with reproductions in
+Everything below was run end to end against T3N **testnet** on 2026-08-08;
+logs 11-15, the follow-up probes that narrow finding #12, were captured on
+2026-08-09. Thirteen findings came out of it — written up with reproductions in
 [BUGS.md](BUGS.md). The bonus criterion (a use case beyond the first contract)
 is in [USE-CASE.md](USE-CASE.md).
 
 Three of them block the published samples outright, and two more are worth
-flagging early to anyone starting out: a contract registration costs **189.09
-tokens** and that price is undocumented, while `token.getUsage()` — the only
-usage method in the SDK — is broken on the wire, so you cannot see the balance
-you are spending until an operation fails.
+flagging early to anyone starting out: a contract registration reported a
+requirement of **189.09 tokens** and that figure is undocumented, while
+`token.getUsage()` — the only usage method in the SDK — is broken on the wire,
+so you cannot see the balance you are spending until an operation fails.
 
 ---
 
@@ -138,7 +139,7 @@ three different stages:
 **Before the first authenticated call:**
 
 1. `trustAnchor` had to be added to `new T3nClient({...})` — required by the
-   type definitions, absent from every sample on the site (finding #1).
+   type definitions, absent from the published samples on the site (finding #1).
 2. `fetchTrustedManifest("testnet")`, the documented way to get a real trust
    anchor, returns **405** from the testnet node, so `{ unsafe_trust_server: true }`
    is currently the only way through — i.e. the tutorial's only working path
@@ -174,16 +175,16 @@ logs/02-quickstart.txt       authenticated session
 logs/03-register.txt         contract registration
 logs/04-invoke.txt           full invocation chain
 logs/05-cargo-test.txt       documented test command failing + host-target fix
-logs/06-acl-break.txt        reproduction of the ACL breakage (finding #8)
+logs/06-acl-break.txt        annotated steps + the captured denial (finding #8)
 logs/07-stderr-volume.txt    2.13 MB stderr measurement (findings #1 and #7)
 logs/08-credits.txt          broken getUsage, registration price, InsufficientCredit (#11)
 logs/09-version-pinning.txt  version accepted at register but rejected at invoke (#12, #13)
 logs/10-trust-manifest.txt   GET/POST probes showing the 405 on /api/trust-manifest (#2)
 logs/11-semver-major.txt     2.0.0     — registers, invoke passes semver (#12)
-logs/12-semver-repro.txt     2.220.1647 — the rejection, reproduced on a clean tail (#12)
+logs/12-semver-repro.txt     2.220.1647 — the rejection, reproduced end to end (#12)
 logs/13-semver-narrow.txt    2.220.0   — registers, invoke passes semver (#12)
-logs/14-semver-pair.txt      2.0.1647  — rejected; minor component ruled out (#12)
-logs/15-semver-major3.txt    3.0.1647  — rejected; boundary is major >= 2 (#12)
+logs/14-semver-pair.txt      2.0.1647  — rejected (#12)
+logs/15-semver-major3.txt    3.0.1647  — rejected (#12)
 ```
 
 Logs 11-15 are the follow-up probes that narrow finding #12 — one version per

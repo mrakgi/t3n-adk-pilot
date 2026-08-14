@@ -14,23 +14,23 @@ Three findings (#1, #2, #3) stop the published samples from running at all.
 
 | # | Area | Severity | One-line | Evidence |
 |---|---|---|---|---|
-| 1 | Docs / Quickstart | **Blocker** | `trustAnchor` is required by the type but missing from every sample | [07](logs/07-stderr-volume.txt) |
+| 1 | Docs / Quickstart | **Blocker** | `trustAnchor` is required by the type but missing from the published samples | [07](logs/07-stderr-volume.txt) |
 | 2 | Node API | **Blocker** | `GET /api/trust-manifest` → 405; no safe way to obtain a real anchor | [10](logs/10-trust-manifest.txt) |
-| 3 | Docs / Set-up | **Blocker** | `tenant.me()` does not exist in the SDK | type defs |
+| 3 | Docs / Set-up | **Blocker** | `tenant.me()` does not exist in the SDK | type defs, quoted in §#3 |
 | 4 | Docs contradiction | High | `tenant_did()` guidance contradicts the WIT *and* the reference contract | [04](logs/04-invoke.txt) |
 | 5 | Reference repo | Medium | `cargo test --lib` as documented cannot execute | [05](logs/05-cargo-test.txt) |
 | 6 | SDK semantics | Low | `TenantClient.getEnvironment()` returns `undefined` | [03](logs/03-register.txt) |
 | 7 | SDK / DX | Medium | A single error prints 2.13 MB of minified bundle to stderr | [07](logs/07-stderr-volume.txt) |
 | 8 | Platform | High | Re-registering a contract breaks its own map ACL | [06](logs/06-acl-break.txt) |
-| 9 | Docs | Low | Quickstart states the SDK defaults to production; it defaults to testnet | type defs |
-| 10 | Reference repo | Low | Three different versions declared across README, WIT and Cargo | source |
-| 11 | SDK | **High** | `token.getUsage()` is broken — no way to read credit usage at all | [08](logs/08-credits.txt) |
+| 9 | Docs | Low | Quickstart states the SDK defaults to production; it defaults to testnet | type defs + runtime, §#9 |
+| 10 | Reference repo | Low | Three different versions declared across README, WIT and Cargo | source, cited in §#10 |
+| 11 | SDK | **High** | `token.getUsage()` — the SDK's only usage method — fails on the wire | [08](logs/08-credits.txt) |
 | 12 | Platform | **High** | A version accepted by `register` is rejected at invoke, and is reported as latest | [09](logs/09-version-pinning.txt) |
-| 13 | Docs | Medium | Docs warn that version pinning is ignored; pinning actually works | [09](logs/09-version-pinning.txt) |
+| 13 | Docs | Medium | Docs warn that explicit version pins are ignored; pinned calls in fact succeed | [09](logs/09-version-pinning.txt) |
 
 ---
 
-## #1 — `trustAnchor` is required by the type, absent from every documented sample
+## #1 — `trustAnchor` is required by the type, absent from the published samples
 
 **Severity:** Blocker — the Quickstart cannot complete as published.
 
@@ -97,9 +97,9 @@ Verified directly against the node:
 
 | Request | Result | `x-request-id` |
 |---|---|---|
-| `GET /api/trust-manifest` | **405** | `12361d12-ebc1-4dac-ae83-030bb5307306` |
-| `POST /api/trust-manifest` | 400 | `c47b934e-c37f-4a76-8233-af1916e1cfe3` |
-| `GET /status` | 200 | — |
+| `GET /api/trust-manifest` | **405** | `24475a99-d03f-4f7a-857f-34142a781f03` |
+| `POST /api/trust-manifest` | 400 | `2aaddc3a-41dc-4e1f-ac75-79de942c6fa0` |
+| `GET /status` | 200 | `8a848cb2-0e01-4876-8f4f-64fd5cb518d9` |
 
 The node is healthy and serves `/api/*` as JSON-RPC over POST; the SDK issues a
 GET. The docs state the manifest "is served by the node itself at
@@ -372,7 +372,11 @@ which is chosen by the tenant.
 **Severity:** High — you cannot see a metered resource you are spending.
 
 `TenantTokenNamespace` exposes exactly one method, `getUsage`. It fails on the
-wire, both with an argument and without:
+wire, both with an argument and without — the probe calls the no-argument form
+only inside the `catch` of the `{}` form
+([credit-check.ts:25-34](scripts/probes/credit-check.ts)), so the error below
+being reached is itself proof that both calls failed. Only the second error text
+was captured:
 
 ```
 RPC Error: invalid token.get-usage params: invalid type: string
